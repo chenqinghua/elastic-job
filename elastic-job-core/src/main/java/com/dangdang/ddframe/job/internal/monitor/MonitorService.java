@@ -36,7 +36,6 @@ import com.dangdang.ddframe.job.internal.util.SensitiveInfoUtils;
 import com.dangdang.ddframe.reg.base.CoordinatorRegistryCenter;
 import com.google.common.base.Joiner;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -45,8 +44,7 @@ import lombok.extern.slf4j.Slf4j;
  * @author caohao
  */
 @Slf4j
-@RequiredArgsConstructor
-public final class MonitorService {
+public class MonitorService {
     
     public static final String DUMP_COMMAND = "dump";
     
@@ -120,7 +118,7 @@ public final class MonitorService {
         for (String each : coordinatorRegistryCenter.getChildrenKeys(path)) {
             String zkPath = path + "/" + each;
             String zkValue = coordinatorRegistryCenter.get(zkPath);
-            TreeCache treeCache = (TreeCache) coordinatorRegistryCenter.getRawCache();
+            TreeCache treeCache = (TreeCache) coordinatorRegistryCenter.getRawCache("/" + jobName);
             ChildData treeCacheData = treeCache.getCurrentData(zkPath);
             String treeCachePath =  null == treeCacheData ? "" : treeCacheData.getPath();
             String treeCacheValue = null == treeCacheData ? "" : new String(treeCacheData.getData());

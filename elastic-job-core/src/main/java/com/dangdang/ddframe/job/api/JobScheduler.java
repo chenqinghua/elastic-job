@@ -25,7 +25,6 @@ import org.quartz.CronScheduleBuilder;
 import org.quartz.CronTrigger;
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
@@ -39,7 +38,6 @@ import com.dangdang.ddframe.job.internal.election.LeaderElectionService;
 import com.dangdang.ddframe.job.internal.execution.ExecutionContextService;
 import com.dangdang.ddframe.job.internal.execution.ExecutionService;
 import com.dangdang.ddframe.job.internal.failover.FailoverService;
-import com.dangdang.ddframe.job.internal.job.AbstractElasticJob;
 import com.dangdang.ddframe.job.internal.listener.ListenerManager;
 import com.dangdang.ddframe.job.internal.monitor.MonitorService;
 import com.dangdang.ddframe.job.internal.offset.OffsetService;
@@ -56,7 +54,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 作业调度器.
  * 
- * @author zhangliang, caohao
+ * @author zhangliang
+ * @author caohao
  */
 @Slf4j
 public class JobScheduler {
@@ -66,6 +65,8 @@ public class JobScheduler {
     private static final String CRON_TRIGGER_INDENTITY_SUFFIX = "Trigger";
     
     private final JobConfiguration jobConfiguration;
+    
+    private final CoordinatorRegistryCenter coordinatorRegistryCenter;
     
     private final ListenerManager listenerManager;
     
@@ -95,6 +96,7 @@ public class JobScheduler {
     
     public JobScheduler(final CoordinatorRegistryCenter coordinatorRegistryCenter, final JobConfiguration jobConfiguration) {
         this.jobConfiguration = jobConfiguration;
+        this.coordinatorRegistryCenter = coordinatorRegistryCenter;
         listenerManager = new ListenerManager(coordinatorRegistryCenter, jobConfiguration);
         configService = new ConfigurationService(coordinatorRegistryCenter, jobConfiguration);
         leaderElectionService = new LeaderElectionService(coordinatorRegistryCenter, jobConfiguration);
@@ -113,6 +115,7 @@ public class JobScheduler {
      */
     public void init() {
         log.debug("Elastic job: job controller init, job name is: {}.", jobConfiguration.getJobName());
+        coordinatorRegistryCenter.addCacheData("/" + jobConfiguration.getJobName());
         registerElasticEnv();
         jobDetail = createJobDetail();
         try {
@@ -121,7 +124,7 @@ public class JobScheduler {
         } catch (final SchedulerException ex) {
             throw new JobException(ex);
         }
-        JobRegistry.getInstance().addJob(jobConfiguration.getJobName(), this);
+        JobRegistry.getInstance().addJobScheduler(jobConfiguration.getJobName(), this);
     }
     
     private void registerElasticEnv() {
@@ -146,18 +149,6 @@ public class JobScheduler {
         return result;
     }
     
-    private CronTrigger createTrigger(final String cronExpression) {
-        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
-        if (configService.isMisfire()) {
-            cronScheduleBuilder = cronScheduleBuilder.withMisfireHandlingInstructionFireAndProceed();
-        } else {
-            cronScheduleBuilder = cronScheduleBuilder.withMisfireHandlingInstructionDoNothing();
-        }
-        return TriggerBuilder.newTrigger()
-                .withIdentity(Joiner.on("_").join(jobConfiguration.getJobName(), CRON_TRIGGER_INDENTITY_SUFFIX))
-                .withSchedule(cronScheduleBuilder).build();
-    }
-    
     private Scheduler initializeScheduler(final String jobName) throws SchedulerException {
         StdSchedulerFactory factory = new StdSchedulerFactory();
         factory.initialize(getBaseQuartzProperties(jobName));
@@ -179,6 +170,18 @@ public class JobScheduler {
     }
     
     protected void prepareEnvironments(final Properties props) {
+    }
+    
+    private CronTrigger createTrigger(final String cronExpression) {
+        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule(cronExpression);
+        if (configService.isMisfire()) {
+            cronScheduleBuilder = cronScheduleBuilder.withMisfireHandlingInstructionFireAndProceed();
+        } else {
+            cronScheduleBuilder = cronScheduleBuilder.withMisfireHandlingInstructionDoNothing();
+        }
+        return TriggerBuilder.newTrigger()
+                .withIdentity(Joiner.on("_").join(jobConfiguration.getJobName(), CRON_TRIGGER_INDENTITY_SUFFIX))
+                .withSchedule(cronScheduleBuilder).build();
     }
     
     private void scheduleJob(final CronTrigger trigger) throws SchedulerException {
@@ -220,11 +223,7 @@ public class JobScheduler {
      */
     public void stopJob() {
         try {
-            for (JobExecutionContext each : scheduler.getCurrentlyExecutingJobs()) {
-                if (each.getJobInstance() instanceof AbstractElasticJob) {
-                    ((AbstractElasticJob) each.getJobInstance()).stop();
-                }
-            }
+            JobRegistry.getInstance().getJobInstance(jobConfiguration.getJobName()).stop();
             scheduler.pauseAll();
         } catch (final SchedulerException ex) {
             throw new JobException(ex);
@@ -236,6 +235,10 @@ public class JobScheduler {
      */
     public void resumeManualStopedJob() {
         try {
+            if (scheduler.isShutdown()) {
+                return;
+            }
+            JobRegistry.getInstance().getJobInstance(jobConfiguration.getJobName()).resume();
             scheduler.resumeAll();
         } catch (final SchedulerException ex) {
             throw new JobException(ex);
@@ -256,6 +259,7 @@ public class JobScheduler {
         if (serverService.isJobStopedManually()) {
             return;
         }
+        JobRegistry.getInstance().getJobInstance(jobConfiguration.getJobName()).resume();
         try {
             scheduler.resumeAll();
         } catch (final SchedulerException ex) {

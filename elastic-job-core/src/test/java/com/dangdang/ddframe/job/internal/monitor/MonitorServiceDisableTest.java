@@ -21,16 +21,17 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-public final class MonitorServiceDisableTest extends AbstractMonitorServiceTest {
-    
-    private static final int MONITOR_PORT = -1;
+import com.dangdang.ddframe.job.fixture.TestJob;
+import com.dangdang.ddframe.job.integrate.AbstractBaseStdJobTest;
+
+public final class MonitorServiceDisableTest extends AbstractBaseStdJobTest {
     
     public MonitorServiceDisableTest() {
-        super(MONITOR_PORT);
+        super(TestJob.class, -1);
     }
     
     @Test(expected = IOException.class)
     public void assertMonitorWithDumpCommand() throws IOException {
-        sendCommand(MonitorService.DUMP_COMMAND, 9000);
+        SocketUtils.sendCommand(MonitorService.DUMP_COMMAND, 9000);
     }
 }

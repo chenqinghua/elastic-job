@@ -36,7 +36,7 @@ import org.unitils.util.ReflectionUtils;
 
 import com.dangdang.ddframe.job.api.JobConfiguration;
 import com.dangdang.ddframe.job.api.JobScheduler;
-import com.dangdang.ddframe.job.internal.AbstractBaseJobTest.TestJob;
+import com.dangdang.ddframe.job.fixture.TestJob;
 import com.dangdang.ddframe.job.internal.env.LocalHostService;
 import com.dangdang.ddframe.job.internal.failover.FailoverService.FailoverLeaderExecutionCallback;
 import com.dangdang.ddframe.job.internal.schedule.JobRegistry;
@@ -149,7 +149,7 @@ public final class FailoverServiceTest {
         when(jobNodeStorage.isJobNodeExisted("leader/failover/items")).thenReturn(true);
         when(jobNodeStorage.getJobNodeChildrenKeys("leader/failover/items")).thenReturn(Arrays.asList("0", "1", "2"));
         when(serverService.isServerReady()).thenReturn(true);
-        JobRegistry.getInstance().addJob("testJob", jobScheduler);
+        JobRegistry.getInstance().addJobScheduler("testJob", jobScheduler);
         failoverService.new FailoverLeaderExecutionCallback().execute();
         verify(jobNodeStorage).isJobNodeExisted("leader/failover/items");
         verify(jobNodeStorage, times(2)).getJobNodeChildrenKeys("leader/failover/items");

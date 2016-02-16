@@ -39,7 +39,7 @@ import org.unitils.util.ReflectionUtils;
 import com.dangdang.ddframe.job.api.JobConfiguration;
 import com.dangdang.ddframe.job.api.JobExecutionMultipleShardingContext;
 import com.dangdang.ddframe.job.api.JobScheduler;
-import com.dangdang.ddframe.job.internal.AbstractBaseJobTest.TestJob;
+import com.dangdang.ddframe.job.fixture.TestJob;
 import com.dangdang.ddframe.job.internal.config.ConfigurationService;
 import com.dangdang.ddframe.job.internal.election.LeaderElectionService;
 import com.dangdang.ddframe.job.internal.env.LocalHostService;
@@ -104,7 +104,7 @@ public final class ExecutionServiceTest {
     public void assertRegisterJobBeginWithoutNextFireTime() {
         when(configService.isMonitorExecution()).thenReturn(true);
         when(jobScheduler.getNextFireTime()).thenReturn(null);
-        JobRegistry.getInstance().addJob("testJob", jobScheduler);
+        JobRegistry.getInstance().addJobScheduler("testJob", jobScheduler);
         JobExecutionMultipleShardingContext jobExecutionShardingContext = new JobExecutionMultipleShardingContext();
         jobExecutionShardingContext.setShardingItems(Arrays.asList(0, 1, 2));
         executionService.registerJobBegin(jobExecutionShardingContext);
@@ -122,7 +122,7 @@ public final class ExecutionServiceTest {
     public void assertRegisterJobBeginWithNextFireTime() {
         when(configService.isMonitorExecution()).thenReturn(true);
         when(jobScheduler.getNextFireTime()).thenReturn(new Date(0L));
-        JobRegistry.getInstance().addJob("testJob", jobScheduler);
+        JobRegistry.getInstance().addJobScheduler("testJob", jobScheduler);
         JobExecutionMultipleShardingContext jobExecutionShardingContext = new JobExecutionMultipleShardingContext();
         jobExecutionShardingContext.setShardingItems(Arrays.asList(0, 1, 2));
         executionService.registerJobBegin(jobExecutionShardingContext);

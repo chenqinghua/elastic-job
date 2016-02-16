@@ -31,7 +31,7 @@ import org.unitils.util.ReflectionUtils;
 
 import com.dangdang.ddframe.job.api.JobConfiguration;
 import com.dangdang.ddframe.job.api.JobScheduler;
-import com.dangdang.ddframe.job.internal.AbstractBaseJobTest.TestJob;
+import com.dangdang.ddframe.job.fixture.TestJob;
 import com.dangdang.ddframe.job.internal.config.ConfigurationListenerManager.CronSettingChangedJobListener;
 import com.dangdang.ddframe.job.internal.schedule.JobRegistry;
 import com.dangdang.ddframe.job.internal.storage.JobNodeStorage;
@@ -81,7 +81,7 @@ public final class ConfigurationListenerManagerTest {
     
     @Test
     public void assertCronSettingChangedJobListenerWhenIsCronPathAndUpdateAndFindJob() {
-        JobRegistry.getInstance().addJob("testJob", jobScheduler);
+        JobRegistry.getInstance().addJobScheduler("testJob", jobScheduler);
         configurationListenerManager.new CronSettingChangedJobListener().dataChanged(null, new TreeCacheEvent(
                 TreeCacheEvent.Type.NODE_UPDATED, new ChildData("/testJob/config/cron", null, "*/10 * * * * *".getBytes())), "/testJob/config/cron");
         verify(jobScheduler).rescheduleJob("*/10 * * * * *");
