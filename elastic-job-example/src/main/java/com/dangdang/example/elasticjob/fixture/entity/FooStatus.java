@@ -20,5 +20,5 @@ package com.dangdang.example.elasticjob.fixture.entity;
 public enum FooStatus {
     
     ACTIVE,
-    INACTIVE;
+    INACTIVE
 }

@@ -69,6 +69,7 @@ public class ZookeeperRegistryCenter implements CoordinatorRegistryCenter {
         this.zkConfig = zkConfig;
     }
     
+    @Override
     public void init() {
         if (zkConfig.isUseNestedZookeeper()) {
             NestedZookeeperServers.getInstance().startServerIfNotStarted(zkConfig.getNestedPort(), zkConfig.getNestedDataDir());
@@ -166,7 +167,7 @@ public class ZookeeperRegistryCenter implements CoordinatorRegistryCenter {
     @Override
     public String get(final String key) {
         TreeCache cache = findTreeCache(key);
-        if (null == findTreeCache(key)) {
+        if (null == cache) {
             return getDirectly(key);
         }
         ChildData resultIncache = cache.getCurrentData(key);
@@ -320,11 +321,11 @@ public class ZookeeperRegistryCenter implements CoordinatorRegistryCenter {
         //CHECKSTYLE:ON
             RegExceptionHandler.handleException(ex);
         }
-        caches.put(cachePath, cache);
+        caches.put(cachePath + "/", cache);
     }
     
     @Override
     public Object getRawCache(final String cachePath) {
-        return caches.get(cachePath);
+        return caches.get(cachePath + "/");
     }
 }
