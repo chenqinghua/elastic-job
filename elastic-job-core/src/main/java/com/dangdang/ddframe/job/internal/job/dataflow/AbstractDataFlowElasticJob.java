@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 1999-2015 dangdang.com.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,7 +70,7 @@ public abstract class AbstractDataFlowElasticJob<T, C extends AbstractJobExecuti
             }
             Type type = parameterizedType.getActualTypeArguments()[1];
             if (JobExecutionMultipleShardingContext.class == type) {
-                return DataFlowType.THROUGHTPUT;
+                return DataFlowType.THROUGHPUT;
             } else if (JobExecutionSingleShardingContext.class == type) {
                 return DataFlowType.SEQUENCE;
             } else {
@@ -81,11 +81,11 @@ public abstract class AbstractDataFlowElasticJob<T, C extends AbstractJobExecuti
     
     @Override
     protected final void executeJob(final JobExecutionMultipleShardingContext shardingContext) {
-        if (DataFlowType.THROUGHTPUT == dataFlowType) {
+        if (DataFlowType.THROUGHPUT == dataFlowType) {
             if (isStreamingProcess()) {
-                executeThroughtputStreamingJob(shardingContext);
+                executeThroughputStreamingJob(shardingContext);
             } else {
-                executeThroughtputOneOffJob(shardingContext);
+                executeThroughputOneOffJob(shardingContext);
             }
         } else if (DataFlowType.SEQUENCE == dataFlowType) {
             if (isStreamingProcess()) {
@@ -96,24 +96,24 @@ public abstract class AbstractDataFlowElasticJob<T, C extends AbstractJobExecuti
         }
     }
     
-    private void executeThroughtputStreamingJob(final JobExecutionMultipleShardingContext shardingContext) {
-        List<T> data = fetchDataForThroughtput(shardingContext);
-        while (null != data && !data.isEmpty() && !isStoped() && !getShardingService().isNeedSharding()) {
-            processDataForThroughtput(shardingContext, data);
-            data = fetchDataForThroughtput(shardingContext);
+    private void executeThroughputStreamingJob(final JobExecutionMultipleShardingContext shardingContext) {
+        List<T> data = fetchDataForThroughput(shardingContext);
+        while (null != data && !data.isEmpty() && getJobFacade().isEligibleForJobRunning(isStopped())) {
+            processDataForThroughput(shardingContext, data);
+            data = fetchDataForThroughput(shardingContext);
         }
     }
     
-    private void executeThroughtputOneOffJob(final JobExecutionMultipleShardingContext shardingContext) {
-        List<T> data = fetchDataForThroughtput(shardingContext);
+    private void executeThroughputOneOffJob(final JobExecutionMultipleShardingContext shardingContext) {
+        List<T> data = fetchDataForThroughput(shardingContext);
         if (null != data && !data.isEmpty()) {
-            processDataForThroughtput(shardingContext, data);
+            processDataForThroughput(shardingContext, data);
         }
     }
     
     private void executeSequenceStreamingJob(final JobExecutionMultipleShardingContext shardingContext) {
         Map<Integer, List<T>> data = fetchDataForSequence(shardingContext);
-        while (!data.isEmpty() && !isStoped() && !getShardingService().isNeedSharding()) {
+        while (!data.isEmpty() && getJobFacade().isEligibleForJobRunning(isStopped())) {
             processDataForSequence(shardingContext, data);
             data = fetchDataForSequence(shardingContext);
         }
@@ -126,7 +126,7 @@ public abstract class AbstractDataFlowElasticJob<T, C extends AbstractJobExecuti
         }
     }
     
-    private List<T> fetchDataForThroughtput(final JobExecutionMultipleShardingContext shardingContext) {
+    private List<T> fetchDataForThroughput(final JobExecutionMultipleShardingContext shardingContext) {
         @SuppressWarnings("unchecked")
         List<T> result = fetchData((C) shardingContext);
         log.trace("Elastic job: fetch data size: {}.", result != null ? result.size() : 0);
@@ -134,15 +134,15 @@ public abstract class AbstractDataFlowElasticJob<T, C extends AbstractJobExecuti
     }
     
     @SuppressWarnings("unchecked")
-    private void processDataForThroughtput(final JobExecutionMultipleShardingContext shardingContext, final List<T> data) {
-        int threadCount = getConfigService().getConcurrentDataProcessThreadCount();
+    private void processDataForThroughput(final JobExecutionMultipleShardingContext shardingContext, final List<T> data) {
+        int threadCount = getJobFacade().getConcurrentDataProcessThreadCount();
         if (threadCount <= 1 || data.size() <= threadCount) {
             processDataWithStatistics((C) shardingContext, data);
             return;
         }
-        List<List<T>> splitedData = Lists.partition(data, data.size() / threadCount);
-        final CountDownLatch latch = new CountDownLatch(splitedData.size());
-        for (final List<T> each : splitedData) {
+        List<List<T>> splitData = Lists.partition(data, data.size() / threadCount);
+        final CountDownLatch latch = new CountDownLatch(splitData.size());
+        for (final List<T> each : splitData) {
             executorService.submit(new Runnable() {
                 
                 @Override
@@ -219,7 +219,7 @@ public abstract class AbstractDataFlowElasticJob<T, C extends AbstractJobExecuti
     
     @Override
     public final void updateOffset(final int item, final String offset) {
-        getOffsetService().updateOffset(item, offset);
+        getJobFacade().updateOffset(item, offset);
     }
     
     @Override

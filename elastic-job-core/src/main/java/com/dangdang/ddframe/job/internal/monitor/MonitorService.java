@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 1999-2015 dangdang.com.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,7 +106,7 @@ public class MonitorService {
             if (null != cmdLine && DUMP_COMMAND.equalsIgnoreCase(cmdLine)) {
                 List<String> result = new ArrayList<>();
                 dumpDirectly("/" + jobName, result);
-                outputMessage(writer, Joiner.on("\n").join(SensitiveInfoUtils.filterSenstiveIps(result)) + "\n");
+                outputMessage(writer, Joiner.on("\n").join(SensitiveInfoUtils.filterSensitiveIps(result)) + "\n");
             }
         } catch (final IOException ex) {
             log.warn(ex.getMessage());
